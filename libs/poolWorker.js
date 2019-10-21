@@ -5,6 +5,22 @@ var net     = require('net');
 var MposCompatibility = require('./mposCompatibility.js');
 var ShareProcessor = require('./shareProcessor.js');
 
+loadWhitelist = function() {
+    var fs = require('fs');
+    
+    if (!fs.existsSync('./whitelist.json')) {
+        console.log('whitelist.json file does not exist. All workers would be accepted.');
+        return [];
+    }
+    
+    var whitelistConfig = JSON.parse(fs.readFileSync("./whitelist.json", {encoding: 'utf8'}));
+    return whitelistConfig.whitelist;
+}
+
+tryPassWhitelist = function(whitelist, workerName) {
+    return whitelist.length > 0 && !whitelist.includes(workerName)
+}
+
 module.exports = function(logger){
 
     var _this = this;
@@ -127,11 +143,16 @@ module.exports = function(logger){
 
         //Functions required for internal payment processing
         else{
-
+            
+            var whitelist = loadWhitelist();
             var shareProcessor = new ShareProcessor(logger, poolOptions);
 
             handlers.auth = function(port, workerName, password, authCallback){
-                if (poolOptions.validateWorkerUsername !== true)
+                if (tryPassWhitelist(whitelist, workerName)) {
+                    logger.debug(logSystem, logComponent, logSubCat, "Connection refused by whitelist: ", workerName);
+                    authCallback(false);
+                }
+                else if (poolOptions.validateWorkerUsername !== true)
                     authCallback(true);
                 else {
                     if (workerName.length === 40) {
