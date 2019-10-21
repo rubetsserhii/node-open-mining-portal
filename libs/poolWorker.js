@@ -7,14 +7,13 @@ var ShareProcessor = require('./shareProcessor.js');
 
 loadWhitelist = function() {
     var fs = require('fs');
-    JSON.minify = JSON.minify || require("node-json-minify");
     
     if (!fs.existsSync('./whitelist.json')) {
         console.log('whitelist.json file does not exist. All workers would be accepted.');
         return [];
     }
     
-    var whitelistConfig = JSON.parse(JSON.minify(fs.readFileSync("./whitelist.json", {encoding: 'utf8'})));
+    var whitelistConfig = JSON.parse(fs.readFileSync("./whitelist.json", {encoding: 'utf8'}));
     return whitelistConfig.whitelist;
 }
 
