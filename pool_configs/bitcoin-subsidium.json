@@ -43,8 +43,8 @@
         {
             "host": "127.0.0.1",
             "port": 19332,
-            "user": "rpcuser",
-            "password": "rpcpass"
+            "user": "xbtxuser",
+            "password": "xbtxpass"
         }
     ],
 
