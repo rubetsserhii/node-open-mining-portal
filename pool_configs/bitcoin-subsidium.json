@@ -2,10 +2,9 @@
     "enabled": true,
     "coin": "bitcoin-subsidium.json",
 
-    "address": "pool-owner-address",
+    "address": "pool-address",
 
     "rewardRecipients": {
-        "pool-owner-address": 1.5
     },
 
     "paymentProcessing": {
