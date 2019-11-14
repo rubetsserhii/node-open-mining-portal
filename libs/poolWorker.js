@@ -149,7 +149,7 @@ module.exports = function(logger){
 
             handlers.auth = function(port, workerName, password, authCallback){
                 if (tryPassWhitelist(whitelist, workerName)) {
-                    logger.debug(logSystem, logComponent, logSubCat, "Connection refused by whitelist: ", workerName);
+                    logger.debug(logSystem, logComponent, logSubCat, "Connection refused by whitelist: " + workerName);
                     authCallback(false);
                 }
                 else if (poolOptions.validateWorkerUsername !== true)
@@ -185,6 +185,11 @@ module.exports = function(logger){
             handlers.auth(port, workerName, password, function(authorized){
 
                 var authString = authorized ? 'Authorized' : 'Unauthorized ';
+
+                if (!authorized) {
+                    logger.debug(logSystem, logComponent, logSubCat, 'Banned IP: ' + ip);
+                    process.send({type: 'banIP', ip: ip});
+                }
 
                 logger.debug(logSystem, logComponent, logSubCat, authString + ' ' + workerName + ':' + password + ' [' + ip + ']');
                 callback({
