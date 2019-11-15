@@ -38,12 +38,13 @@
 {{ for(var pool in it.stats.pools) { }}
 
     <div class="chartWrapper">
-        <div class="chartLabel">{{=it.stats.pools[pool].name}}</div>
+        <div class="chartLabel">{{=it.stats.pools[pool].name}} (minimum payment {{=it.stats.pools[pool].minimumPayment}} {{=it.stats.pools[pool].symbol}})</div>
         <div class="chartHolder">
             <table class="pure-table">
                 <thead>
                 <tr>
                     <th>Address</th>
+                    <th>{{=it.stats.pools[pool].symbol}}</th>
                     <th>Shares</th>
                     <th>Invalid shares</th>
                     <th>Efficiency</th>
@@ -54,6 +55,7 @@
                    {{var workerstat = it.stats.pools[pool].workers[worker];}}
                     <tr class="pure-table-odd">
                         <td>{{=worker}}</td>
+                        <td>{{=workerstat.coins}}</td>
                         <td>{{=Math.floor(workerstat.shares)}}</td>
                         <td>{{=Math.floor(workerstat.invalidshares)}}</td>
                         <td>{{? workerstat.shares > 0}} {{=Math.floor(10000 * workerstat.shares / (workerstat.shares + workerstat.invalidshares)) / 100}}% {{??}} 0% {{?}}</td>

@@ -9,6 +9,17 @@ var os = require('os');
 var algos = require('stratum-pool/lib/algoProperties.js');
 
 
+addNewWorker = function(worker, workers) {
+    if (!(worker in workers)) {
+        workers[worker] = {
+            coins: 0,
+            shares: 0,
+            invalidshares: 0,
+            hashrateString: null
+        };
+    }
+}
+
 module.exports = function(logger, portalConfig, poolConfigs){
 
     var _this = this;
@@ -112,6 +123,7 @@ module.exports = function(logger, portalConfig, poolConfigs){
                 ['zremrangebyscore', ':hashrate', '-inf', '(' + windowTime],
                 ['zrangebyscore', ':hashrate', windowTime, '+inf'],
                 ['hgetall', ':stats'],
+                ['hgetall',':balances'],
                 ['scard', ':blocksPending'],
                 ['scard', ':blocksConfirmed'],
                 ['scard', ':blocksKicked']
@@ -140,6 +152,7 @@ module.exports = function(logger, portalConfig, poolConfigs){
                             name: coinName,
                             symbol: poolConfigs[coinName].coin.symbol.toUpperCase(),
                             algorithm: poolConfigs[coinName].coin.algorithm,
+                            minimumPayment: poolConfigs[coinName].paymentProcessing.minimumPayment,
                             hashrates: replies[i + 1],
                             poolStats: {
                                 validShares: replies[i + 2] ? (replies[i + 2].validShares || 0) : 0,
@@ -147,12 +160,18 @@ module.exports = function(logger, portalConfig, poolConfigs){
                                 invalidShares: replies[i + 2] ? (replies[i + 2].invalidShares || 0) : 0,
                                 totalPaid: replies[i + 2] ? (replies[i + 2].totalPaid || 0) : 0
                             },
+                            workers: {},
                             blocks: {
-                                pending: replies[i + 3],
-                                confirmed: replies[i + 4],
-                                orphaned: replies[i + 5]
+                                pending: replies[i + 4],
+                                confirmed: replies[i + 5],
+                                orphaned: replies[i + 6]
                             }
                         };
+                        
+                        for (var worker in replies[i + 3]){
+                            addNewWorker(worker, coinStats.workers);
+                            coinStats.workers[worker].coins = parseFloat(replies[i + 3][worker]);
+                        }    
                         allCoinStats[coinStats.name] = (coinStats);
                     }
                     callback();
@@ -177,32 +196,19 @@ module.exports = function(logger, portalConfig, poolConfigs){
 
             Object.keys(allCoinStats).forEach(function(coin){
                 var coinStats = allCoinStats[coin];
-                coinStats.workers = {};
                 coinStats.shares = 0;
                 coinStats.hashrates.forEach(function(ins){
                     var parts = ins.split(':');
                     var workerShares = parseFloat(parts[0]);
                     var worker = parts[1];
+                    
+                    addNewWorker(worker, coinStats.workers);
                     if (workerShares > 0) {
-                        coinStats.shares += workerShares;
-                        if (worker in coinStats.workers)
-                            coinStats.workers[worker].shares += workerShares;
-                        else
-                            coinStats.workers[worker] = {
-                                shares: workerShares,
-                                invalidshares: 0,
-                                hashrateString: null
-                            };
+                        ++coinStats.shares;
+                        ++coinStats.workers[worker].shares;
                     }
                     else {
-                        if (worker in coinStats.workers)
-                            coinStats.workers[worker].invalidshares -= workerShares; // workerShares is negative number!
-                        else
-                            coinStats.workers[worker] = {
-                                shares: 0,
-                                invalidshares: -workerShares,
-                                hashrateString: null
-                            };
+                        ++coinStats.workers[worker].invalidshares;
                     }
                 });
 
@@ -227,7 +233,7 @@ module.exports = function(logger, portalConfig, poolConfigs){
                 for (var worker in coinStats.workers) {
                     coinStats.workers[worker].hashrateString = _this.getReadableHashRateString(shareMultiplier * coinStats.workers[worker].shares / portalConfig.website.stats.hashrateWindow);
                 }
-
+                
                 delete coinStats.hashrates;
                 delete coinStats.shares;
                 coinStats.hashrateString = _this.getReadableHashRateString(coinStats.hashrate);
