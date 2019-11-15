@@ -15,6 +15,7 @@ addNewWorker = function(worker, workers) {
             coins: 0,
             shares: 0,
             invalidshares: 0,
+            currentShare: 0,
             hashrateString: null
         };
     }
@@ -119,14 +120,16 @@ module.exports = function(logger, portalConfig, poolConfigs){
             var redisCommands = [];
 
 
-            var redisCommandTemplates = [
+            var redisCommandTemplates = [ 
                 ['zremrangebyscore', ':hashrate', '-inf', '(' + windowTime],
                 ['zrangebyscore', ':hashrate', windowTime, '+inf'],
                 ['hgetall', ':stats'],
                 ['hgetall',':balances'],
                 ['scard', ':blocksPending'],
                 ['scard', ':blocksConfirmed'],
-                ['scard', ':blocksKicked']
+                ['scard', ':blocksKicked'],
+                ['hgetall', ':validShares'],
+                ['hgetall', ':invalidShares']
             ];
 
             var commandsPerCoin = redisCommandTemplates.length;
@@ -152,8 +155,8 @@ module.exports = function(logger, portalConfig, poolConfigs){
                             name: coinName,
                             symbol: poolConfigs[coinName].coin.symbol.toUpperCase(),
                             algorithm: poolConfigs[coinName].coin.algorithm,
-                            minimumPayment: poolConfigs[coinName].paymentProcessing.minimumPayment,
                             hashrates: replies[i + 1],
+                            minimumPayment: poolConfigs[coinName].paymentProcessing.minimumPayment,
                             poolStats: {
                                 validShares: replies[i + 2] ? (replies[i + 2].validShares || 0) : 0,
                                 validBlocks: replies[i + 2] ? (replies[i + 2].validBlocks || 0) : 0,
@@ -171,6 +174,14 @@ module.exports = function(logger, portalConfig, poolConfigs){
                         for (var worker in replies[i + 3]){
                             addNewWorker(worker, coinStats.workers);
                             coinStats.workers[worker].coins = parseFloat(replies[i + 3][worker]);
+                        }    
+                        for (var worker in replies[i + 7]){
+                            addNewWorker(worker, coinStats.workers);
+                            coinStats.workers[worker].shares = parseInt(replies[i + 7][worker]);
+                        }    
+                        for (var worker in replies[i + 8]){
+                            addNewWorker(worker, coinStats.workers);
+                            coinStats.workers[worker].invalidshares = parseInt(replies[i + 8][worker]);
                         }    
                         allCoinStats[coinStats.name] = (coinStats);
                     }
@@ -197,18 +208,15 @@ module.exports = function(logger, portalConfig, poolConfigs){
             Object.keys(allCoinStats).forEach(function(coin){
                 var coinStats = allCoinStats[coin];
                 coinStats.shares = 0;
+
                 coinStats.hashrates.forEach(function(ins){
                     var parts = ins.split(':');
                     var workerShares = parseFloat(parts[0]);
                     var worker = parts[1];
-                    
-                    addNewWorker(worker, coinStats.workers);
                     if (workerShares > 0) {
-                        ++coinStats.shares;
-                        ++coinStats.workers[worker].shares;
-                    }
-                    else {
-                        ++coinStats.workers[worker].invalidshares;
+                        coinStats.shares += workerShares;
+                        addNewWorker(worker, coinStats.workers);
+                        coinStats.workers[worker].currentShare += workerShares;
                     }
                 });
 
@@ -231,7 +239,7 @@ module.exports = function(logger, portalConfig, poolConfigs){
                 portalStats.algos[algo].workers += Object.keys(coinStats.workers).length;
 
                 for (var worker in coinStats.workers) {
-                    coinStats.workers[worker].hashrateString = _this.getReadableHashRateString(shareMultiplier * coinStats.workers[worker].shares / portalConfig.website.stats.hashrateWindow);
+                    coinStats.workers[worker].hashrateString = _this.getReadableHashRateString(shareMultiplier * coinStats.workers[worker].currentShare / portalConfig.website.stats.hashrateWindow);
                 }
                 
                 delete coinStats.hashrates;
