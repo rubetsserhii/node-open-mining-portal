@@ -1,0 +1,7 @@
+{
+    "name": "Bitcoin Subsidium (scrypt)",
+    "symbol": "XBTX",
+    "algorithm": "scrypt",
+    "peerMagic": "58425443",
+    "peerMagicTestnet": "00000000"
+}

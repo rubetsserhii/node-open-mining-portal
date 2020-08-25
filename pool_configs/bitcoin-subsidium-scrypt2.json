@@ -1,0 +1,71 @@
+{
+    "enabled": true,
+    "coin": "bitcoin-subsidium-scrypt2.json",
+
+    "address": "pool-address",
+
+    "rewardRecipients": {
+    },
+
+    "paymentProcessing": {
+        "enabled": true,
+        "paymentInterval": 120,
+        "minimumPayment": 50,
+        "daemon": {
+            "host": "127.0.0.1",
+            "port": 19332,
+            "user": "xbtxuser",
+            "password": "xbtxpass"
+        }
+    },
+
+    "ports": {
+        "4001": {
+            "diff": 0.01
+        },
+        "4008": {
+            "diff": 8
+        },
+        "4032": {
+            "diff": 32,
+            "varDiff": {
+                "minDiff": 8,
+                "maxDiff": 512,
+                "targetTime": 15,
+                "retargetTime": 90,
+                "variancePercent": 30
+            }
+        },
+        "4256": {
+            "diff": 256
+        }
+    },
+
+    "daemons": [
+        {
+            "host": "127.0.0.1",
+            "port": 19332,
+            "user": "xbtxuser",
+            "password": "xbtxpass"
+        }
+    ],
+
+    "p2p": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "port": 19333,
+        "disableTransactions": true
+    },
+
+    "mposMode": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "me",
+        "password": "mypass",
+        "database": "ltc",
+        "checkPassword": true,
+        "autoCreateWorker": false
+    }
+
+}
